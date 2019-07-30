@@ -21,7 +21,7 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/flynn/go-shlex"
+  name = "github.com/dittusch/go-shlex"
   packages = ["."]
   revision = "3f9db97f856818214da2e1057f8ad84803971cff"
 
@@ -34,6 +34,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "adc7005966d8144acb43ef3b508f709a8fe83d222fbf40dcf6765fa5d0013ca9"
+  inputs-digest = "eeee1e6836ba043dc7a1a426e5b347dce811be83b38a31481c1c05f4305e9d4b"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/BurntSushi/toml"
 	"github.com/alexflint/go-arg"
-	"github.com/flynn/go-shlex"
+	"github.com/dittusch/go-shlex"
 	. "github.com/logrusorgru/aurora"
 	"io/ioutil"
 	"log"
