@@ -1,4 +1,4 @@
-## do - do ist, just, just...do it.
+## do - do it, just, just...do it.
 
 ### What is this?
 
