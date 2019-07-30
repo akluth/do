@@ -20,6 +20,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/flynn/go-shlex"
+  packages = ["."]
+  revision = "3f9db97f856818214da2e1057f8ad84803971cff"
+
+[[projects]]
   name = "github.com/logrusorgru/aurora"
   packages = ["."]
   revision = "21d75270181e0436fee7bd58b991c212cf309068"
@@ -28,6 +34,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f9c491a4f9e9a67215f89654601df99beeea8e607e60c8e3830d67936998c3ea"
+  inputs-digest = "adc7005966d8144acb43ef3b508f709a8fe83d222fbf40dcf6765fa5d0013ca9"
   solver-name = "gps-cdcl"
   solver-version = 1

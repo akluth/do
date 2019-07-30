@@ -1,14 +1,14 @@
 description = "Dofile example"
 
-[task]
+[tasks]
 
-    [task.build]
+    [tasks.build]
     commands = [
         'echo "Ja hallo!',
         'ls -l'
     ]
 
-    [task.clean]
+    [tasks.clean]
     commands = [
         'echo "Ui ui ui ui ui!"',
     ]
