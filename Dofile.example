@@ -2,13 +2,19 @@ description = "Dofile example"
 
 [tasks]
 
-    [tasks.build]
+    [tasks.ls]
     commands = [
-        'echo "Ja hallo!',
+        'ls /tmp',
         'ls -l'
     ]
 
-    [tasks.clean]
+    [tasks.date]
     commands = [
-        'echo "Ui ui ui ui ui!"',
+        'date',
+    ]
+    output = true
+
+    [tasks.fail]
+    commands = [
+        'i-do-not-exist'
     ]

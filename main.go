@@ -24,6 +24,7 @@ type Dofile struct {
 
 type task struct {
 	Commands []string
+	Output bool
 }
 
 func remove(slice []string, s int) []string {
@@ -50,9 +51,21 @@ func executeTask(doFile Dofile, taskName string) {
 			cmdName := tokens[0]
 			tokens = remove(tokens, 0)
 
-			if err := exec.Command(cmdName, tokens...).Run(); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
+			cmd := exec.Command(cmdName, tokens...)
+
+			if doFile.Tasks[taskName].Output == true {
+				out, _ := cmd.CombinedOutput()
+
+				//TODO: Identify if the executable does not exist
+				//if err != nil {
+				//	log.Fatalf("cmd.Run() failed with %s\n", err)
+				//}
+				fmt.Printf(string(out))
+			} else {
+				if err := cmd.Run(); err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
+				}
 			}
 		}
 	} else {
