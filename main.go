@@ -62,7 +62,11 @@ func executeTask(doFile Dofile, taskName string) {
 				//	log.Fatalf("cmd.Run() failed with %s\n", err)
 				//}
 				fmt.Println()
+				fmt.Println(Bold(Yellow("Output:")))
+				fmt.Println(Yellow("--------------------------------------------------------------------------"))
 				fmt.Printf(string(out))
+				fmt.Println(Yellow("--------------------------------------------------------------------------"))
+				fmt.Println()
 			} else {
 				if err := cmd.Run(); err != nil {
 					fmt.Fprintln(os.Stderr, err)
