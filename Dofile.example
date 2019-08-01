@@ -18,3 +18,9 @@ description = "Dofile example"
     commands = [
         'i-do-not-exist'
     ]
+
+    [tasks.combined]
+    tasks = [
+        'ls',
+        'date'
+    ]

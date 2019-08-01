@@ -43,10 +43,10 @@ func parseCommand(command string) []string {
 
 func executeTask(doFile Dofile, taskName string) {
 	if _, found := doFile.Tasks[taskName]; found {
-		fmt.Println(Bold(Green("Executing task")), Bold(Cyan(taskName)))
+		fmt.Println(Bold("-> Executing task\t"), Bold(Magenta(taskName)))
 
 		for _, command := range doFile.Tasks[taskName].Commands {
-			fmt.Println(Bold(Yellow(taskName)), " ",  command)
+			fmt.Println("  ", Bold(Yellow(taskName)), " ", command)
 
 			tokens := parseCommand(command)
 			cmdName := tokens[0]
@@ -61,6 +61,7 @@ func executeTask(doFile Dofile, taskName string) {
 				//if err != nil {
 				//	log.Fatalf("cmd.Run() failed with %s\n", err)
 				//}
+				fmt.Println()
 				fmt.Printf(string(out))
 			} else {
 				if err := cmd.Run(); err != nil {
@@ -71,7 +72,7 @@ func executeTask(doFile Dofile, taskName string) {
 		}
 
 		for _, task := range doFile.Tasks[taskName].Tasks {
-			fmt.Println(Bold(Cyan("Executing subtask")), task)
+			fmt.Println(Bold(Magenta("-> Executing subtask\t")), Bold(task))
 
 			executeTask(doFile, task)
 		}
@@ -93,6 +94,9 @@ func main() {
 	if _, err := toml.Decode(string(fileContents), &doFile); err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(Bold(Green(doFile.Description)))
+	fmt.Println()
 
 	for _, taskName := range args.TaskName {
 		executeTask(doFile, taskName)
