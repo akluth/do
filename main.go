@@ -63,10 +63,6 @@ func executeTask(doFile Dofile, taskName string) {
 			if doFile.Tasks[taskName].Output == true {
 				out, _ := cmd.CombinedOutput()
 
-				//TODO: Identify if the executable does not exist
-				//if err != nil {
-				//	log.Fatalf("cmd.Run() failed with %s\n", err)
-				//}
 				fmt.Println()
 				fmt.Println(Bold(Yellow("Output:")))
 				fmt.Println(Yellow("--------------------------------------------------------------------------"))
