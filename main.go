@@ -24,6 +24,7 @@ type Dofile struct {
 
 type task struct {
 	Commands []string
+	Tasks []string
 	Output bool
 }
 
@@ -68,6 +69,12 @@ func executeTask(doFile Dofile, taskName string) {
 				}
 			}
 		}
+
+		for _, task := range doFile.Tasks[taskName].Tasks {
+			fmt.Println(Bold(Cyan("Executing subtask")), task)
+
+			executeTask(doFile, task)
+		}
 	} else {
 		fmt.Println(Bold(Red("Could not find task")), Bold(Yellow(taskName)), Bold(Red("aborting!")))
 		os.Exit(-1);
@@ -91,5 +98,6 @@ func main() {
 		executeTask(doFile, taskName)
 	}
 
+	fmt.Println()
 	fmt.Println(Bold(Green("Done executing all tasks for")), doFile.Description)
 }
