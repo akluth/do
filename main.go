@@ -54,6 +54,12 @@ func executeTask(doFile Dofile, taskName string) {
 
 			cmd := exec.Command(cmdName, tokens...)
 
+			if _, err := os.Stat(cmdName); os.IsNotExist(err) {
+				fmt.Println()
+				fmt.Println(Bold(Red("Error: Command")), Bold(cmdName), Bold(Red("does not exist or is not in your $PATH!")))
+				os.Exit(1)
+			}
+
 			if doFile.Tasks[taskName].Output == true {
 				out, _ := cmd.CombinedOutput()
 
