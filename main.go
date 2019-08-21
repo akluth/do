@@ -11,10 +11,12 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"path/filepath"
 )
 
 var args struct {
 	TaskName[] string `arg:"positional"`
+	Dofile string
 }
 
 type Dofile struct {
@@ -41,7 +43,7 @@ func parseCommand(command string) []string {
 	return parts
 }
 
-func executeTask(doFile Dofile, taskName string) {
+func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 	if _, found := doFile.Tasks[taskName]; found {
 		fmt.Println(Bold("-> Executing task\t"), Bold(Magenta(taskName)))
 
@@ -53,6 +55,7 @@ func executeTask(doFile Dofile, taskName string) {
 			tokens = remove(tokens, 0)
 
 			cmd := exec.Command(cmdName, tokens...)
+			cmd.Dir = dirPrefix
 
 			//if _, err := os.Stat(cmdName); os.IsNotExist(err) {
 			//	fmt.Println()
@@ -80,7 +83,7 @@ func executeTask(doFile Dofile, taskName string) {
 		for _, task := range doFile.Tasks[taskName].Tasks {
 			fmt.Println(Bold(Magenta("-> Executing subtask\t")), Bold(task))
 
-			executeTask(doFile, task)
+			executeTask(doFile, dirPrefix, task)
 		}
 	} else {
 		fmt.Println(Bold(Red("Could not find task")), Bold(Yellow(taskName)), Bold(Red("aborting!")))
@@ -91,7 +94,15 @@ func executeTask(doFile Dofile, taskName string) {
 func main() {
 	arg.MustParse(&args)
 
-	fileContents, err := ioutil.ReadFile("./Dofile")
+	var fileName = "./Dofile"
+	var dirPrefix = "./"
+
+	if args.Dofile != "" {
+		fileName = args.Dofile
+		dirPrefix = filepath.Dir(fileName)
+	}
+
+	fileContents, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -105,7 +116,7 @@ func main() {
 	fmt.Println()
 
 	for _, taskName := range args.TaskName {
-		executeTask(doFile, taskName)
+		executeTask(doFile, dirPrefix, taskName)
 	}
 
 	fmt.Println()
