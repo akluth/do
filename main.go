@@ -8,6 +8,7 @@ import (
 	. "github.com/logrusorgru/aurora"
 	"io/ioutil"
 	"log"
+    "bufio"
 	"os"
 	"os/exec"
 	"strings"
@@ -28,6 +29,7 @@ type task struct {
 	Commands []string
 	Tasks []string
 	Output bool
+    Piped bool
 }
 
 func remove(slice []string, s int) []string {
@@ -64,14 +66,42 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 			//}
 
 			if doFile.Tasks[taskName].Output == true {
-				out, _ := cmd.CombinedOutput()
+                if doFile.Tasks[taskName].Piped == true {
+                    cmdReader, err := cmd.StdoutPipe()
+	                if err != nil {
+		                fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
+		                //TODO: Don't bail out, continue without piping/logging
+                        os.Exit(1)
+	                }
 
-				fmt.Println()
-				fmt.Println(Bold(Yellow("Output:")))
-				fmt.Println(Yellow("--------------------------------------------------------------------------"))
-				fmt.Printf(string(out))
-				fmt.Println(Yellow("--------------------------------------------------------------------------"))
-				fmt.Println()
+	                scanner := bufio.NewScanner(cmdReader)
+	                go func() {
+		                for scanner.Scan() {
+			                fmt.Printf("\t%s\n", scanner.Text())
+		                }
+	                }()
+
+                    err = cmd.Start()
+	                if err != nil {
+		                fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
+		                os.Exit(1)
+	                }
+
+	                err = cmd.Wait()
+	                if err != nil {
+		                fmt.Fprintln(os.Stderr, "Error waiting for Cmd", err)
+		                os.Exit(1)
+	                }
+                } else {
+				    out, _ := cmd.CombinedOutput()
+
+				    fmt.Println()
+				    fmt.Println(Bold(Yellow("Output:")))
+				    fmt.Println(Yellow("--------------------------------------------------------------------------"))
+				    fmt.Printf(string(out))
+				    fmt.Println(Yellow("--------------------------------------------------------------------------"))
+				    fmt.Println()
+                }
 			} else {
 				if err := cmd.Run(); err != nil {
 					fmt.Fprintln(os.Stderr, err)
