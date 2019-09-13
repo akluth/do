@@ -67,10 +67,10 @@ func parseCommand(command string) []string {
 
 func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 	if _, found := doFile.Tasks[taskName]; found {
-		fmt.Println(Bold("-> Executing task\t"), Bold(Magenta(taskName)))
+		fmt.Println(Bold("-> Executing task\t"), Bold(Cyan(taskName)))
 
 		for _, command := range doFile.Tasks[taskName].Commands {
-			fmt.Println("  ", Bold(Yellow(taskName)), " ", command)
+			fmt.Println("  ", Bold(Yellow(taskName)), "(", command, ")")
 
 			tokens := parseCommand(command)
 			cmdName := tokens[0]
@@ -107,13 +107,7 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 	                }
                 } else {
 				    out, _ := cmd.CombinedOutput()
-
-				    fmt.Println()
-				    fmt.Println(Bold(Yellow("Output:")))
-				    fmt.Println(Yellow("--------------------------------------------------------------------------"))
-				    fmt.Printf(string(out))
-				    fmt.Println(Yellow("--------------------------------------------------------------------------"))
-				    fmt.Println()
+				    fmt.Printf("\t%s", string(out))
                 }
 			} else {
 				if err := cmd.Run(); err != nil {
@@ -124,7 +118,7 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 		}
 
 		for _, task := range doFile.Tasks[taskName].Tasks {
-			fmt.Println(Bold(Magenta("-> Executing subtask\t")), Bold(task))
+			fmt.Println(Bold(Cyan("-> Executing subtask\t")), Bold(task))
 
 			executeTask(doFile, dirPrefix, task)
 		}
@@ -163,6 +157,14 @@ desc = 'Dofile example'
 	# Setting piped to true will print all output immediately via pipes to stdout/stderr, setting to false
 	# will print the output of the commands _after_ their execution
 	piped = false
+
+	[tasks.subTasks]
+	
+	# You can combine tasks under one task name
+	tasks = [
+		"yourTaskName".
+		"thisTaskDoesNotExistNow"
+	]
 `
 
 	file, err := os.Create("Dofile")
@@ -206,7 +208,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(Bold(Green(doFile.Description)))
+	fmt.Println(Bold(Green("\nExecuting tasks for")), doFile.Description)
 	fmt.Println()
 
 	if len(args.TaskName) > 0 {
@@ -219,6 +221,6 @@ func main() {
 		}
 	}
 
+	fmt.Println(Bold(Green("\nExecuted all tasks for")), doFile.Description)
 	fmt.Println()
-	fmt.Println(Bold(Green("Done executing all tasks for")), doFile.Description)
 }
