@@ -17,7 +17,8 @@ import (
 
 var args struct {
 	TaskName[] string `arg:"positional"`
-	Dofile string
+	Dofile string `arg:"-d" help:"Path to Dofile whne not in current directory"`
+	Init bool `arg:"-i" help:"Create a skeleton Dofile"`
 }
 
 type Dofile struct {
@@ -83,13 +84,13 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 
                     err = cmd.Start()
 	                if err != nil {
-		                fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
+						_, _ = fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
 		                os.Exit(1)
 	                }
 
 	                err = cmd.Wait()
 	                if err != nil {
-		                fmt.Fprintln(os.Stderr, "Error waiting for Cmd", err)
+						_, _ = fmt.Fprintln(os.Stderr, "Error waiting for Cmd", err)
 		                os.Exit(1)
 	                }
                 } else {
@@ -104,7 +105,7 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
                 }
 			} else {
 				if err := cmd.Run(); err != nil {
-					fmt.Fprintln(os.Stderr, err)
+					_, _ = fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
 			}
@@ -121,11 +122,62 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 	}
 }
 
+func createDoFileSkeleton() {
+	_, err := os.Stat("Dofile")
+	if !os.IsNotExist(err) {
+		fmt.Println(Red("Error: 'Dofile' already exists in current directory, aborting."))
+		os.Exit(-1)
+	}
+
+	var Dofile = `
+# A somewhat descriptive name for your project/Dofile
+desc = 'Dofile example'
+
+# All tasks are listed here
+[tasks]
+
+	# Each tasks is defined by tasks.$TASKNAME
+	[tasks.yourTaskName]
+	
+	# Here are all commands listed which shall be executed
+	commands = [
+		"$YOUR_COMMAND",
+		"$ANOTHER_COMMAND --with $args"
+	]
+
+	# Setting output to true will print any stdout/stderr output of the executed programs to stdout
+	output = true
+
+	# Setting piped to true will print all output immediately via pipes to stdout/stderr, setting to false
+	# will print the output of the commands _after_ their execution
+	piped = false
+`
+
+	file, err := os.Create("Dofile")
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = file.WriteString(Dofile)
+	if err != nil {
+		panic(err)
+	}
+
+	_ = file.Sync()
+
+	fmt.Println(Green("Wrote Dofile to current directory. Edit it and then simply run 'do'!"))
+}
+
 func main() {
 	arg.MustParse(&args)
 
 	var fileName = "./Dofile"
 	var dirPrefix = "./"
+
+	if args.Init {
+		createDoFileSkeleton()
+		os.Exit(0)
+	}
 
 	if args.Dofile != "" {
 		fileName = args.Dofile
@@ -145,8 +197,14 @@ func main() {
 	fmt.Println(Bold(Green(doFile.Description)))
 	fmt.Println()
 
-	for _, taskName := range args.TaskName {
-		executeTask(doFile, dirPrefix, taskName)
+	if len(args.TaskName) > 0 {
+		for _, taskName := range args.TaskName {
+			executeTask(doFile, dirPrefix, taskName)
+		}
+	} else {
+		for taskName, _ := range doFile.Tasks {
+			executeTask(doFile, dirPrefix, taskName)
+		}
 	}
 
 	fmt.Println()
