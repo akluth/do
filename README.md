@@ -24,11 +24,20 @@ Dofile:
         commands = [
             "my-super-cool-build-tool --with-options AndArguments"
         ]
+        output = true
 
         [tasks.clean]
         commands = [
             "rm -rf /",
             "echo 'That wasn't so smart, wasn't it?'"
+        ]
+        output = true
+        piped = true
+        
+        [tasks.clean-build]
+        tasks = [
+            "clean",
+            "build"
         ]
 
 Then simply type
@@ -36,7 +45,7 @@ Then simply type
     $ do build
     $ do clean
     $ do build clean
+    $ do clean-build
 
 to execute those super-important tasks.
-
 

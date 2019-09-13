@@ -2,25 +2,27 @@ description = "Dofile example"
 
 [tasks]
 
-    [tasks.ls]
+    [tasks.no-output]
+    commands = [
+        'true'
+    ]
+
+    [tasks.show-dir]
     commands = [
         'ls /tmp',
         'ls -l'
     ]
+    output = true
+    piped = true
 
-    [tasks.date]
+    [tasks.print-date]
     commands = [
         'date',
     ]
     output = true
 
-    [tasks.fail]
-    commands = [
-        'i-do-not-exist'
-    ]
-
     [tasks.combined]
     tasks = [
-        'ls',
-        'date'
+        'show-dir',
+        'print-date'
     ]
