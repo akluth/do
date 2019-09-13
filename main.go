@@ -17,7 +17,7 @@ import (
 
 var args struct {
 	TaskName[] string `arg:"positional"`
-	Dofile string `arg:"-d" help:"Path to Dofile whne not in current directory"`
+	Dofile string `arg:"-d" help:"Path to Dofile whne it's not in current directory"`
 	Init bool `arg:"-i" help:"Create a skeleton Dofile"`
 }
 
@@ -60,18 +60,11 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 			cmd := exec.Command(cmdName, tokens...)
 			cmd.Dir = dirPrefix
 
-			//if _, err := os.Stat(cmdName); os.IsNotExist(err) {
-			//	fmt.Println()
-			//	fmt.Println(Bold(Red("Error: Command")), Bold(cmdName), Bold(Red("does not exist or is not in your $PATH!")))
-			//	os.Exit(1)
-			//}
-
 			if doFile.Tasks[taskName].Output == true {
                 if doFile.Tasks[taskName].Piped == true {
                     cmdReader, err := cmd.StdoutPipe()
 	                if err != nil {
-		                fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
-		                //TODO: Don't bail out, continue without piping/logging
+						_, _ = fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
                         os.Exit(1)
 	                }
 
