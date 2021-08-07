@@ -20,36 +20,37 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
 	"github.com/BurntSushi/toml"
 	"github.com/alexflint/go-arg"
 	"github.com/dittusch/go-shlex"
 	. "github.com/logrusorgru/aurora"
-	"io/ioutil"
-	"log"
-    "bufio"
-	"os"
-	"os/exec"
-	"strings"
-	"path/filepath"
 )
 
 var args struct {
-	TaskName[] string `arg:"positional"`
-	Dofile string `arg:"-d" help:"Path to Dofile whne it's not in current directory"`
-	Init bool `arg:"-i" help:"Create a skeleton Dofile"`
+	TaskName []string `arg:"positional"`
+	Dofile   string   `arg:"-d" help:"Path to Dofile whne it's not in current directory"`
+	Init     bool     `arg:"-i" help:"Create a skeleton Dofile"`
 }
 
 type Dofile struct {
 	Description string
-	Tasks map[string]task
+	Tasks       map[string]task
 }
 
 type task struct {
 	Commands []string
-	Tasks []string
-	Output bool
-    Piped bool
+	Tasks    []string
+	Output   bool
+	Piped    bool
 }
 
 func remove(slice []string, s int) []string {
@@ -80,35 +81,35 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 			cmd.Dir = dirPrefix
 
 			if doFile.Tasks[taskName].Output == true {
-                if doFile.Tasks[taskName].Piped == true {
-                    cmdReader, err := cmd.StdoutPipe()
-	                if err != nil {
+				if doFile.Tasks[taskName].Piped == true {
+					cmdReader, err := cmd.StdoutPipe()
+					if err != nil {
 						_, _ = fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
-                        os.Exit(1)
-	                }
+						os.Exit(1)
+					}
 
-	                scanner := bufio.NewScanner(cmdReader)
-	                go func() {
-		                for scanner.Scan() {
-			                fmt.Printf("\t%s\n", scanner.Text())
-		                }
-	                }()
+					scanner := bufio.NewScanner(cmdReader)
+					go func() {
+						for scanner.Scan() {
+							fmt.Printf("\t%s\n", scanner.Text())
+						}
+					}()
 
-                    err = cmd.Start()
-	                if err != nil {
+					err = cmd.Start()
+					if err != nil {
 						_, _ = fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
-		                os.Exit(1)
-	                }
+						os.Exit(1)
+					}
 
-	                err = cmd.Wait()
-	                if err != nil {
+					err = cmd.Wait()
+					if err != nil {
 						_, _ = fmt.Fprintln(os.Stderr, "Error waiting for Cmd", err)
-		                os.Exit(1)
-	                }
-                } else {
-				    out, _ := cmd.CombinedOutput()
-				    fmt.Printf("\t%s", string(out))
-                }
+						os.Exit(1)
+					}
+				} else {
+					out, _ := cmd.CombinedOutput()
+					fmt.Printf("\t%s", string(out))
+				}
 			} else {
 				if err := cmd.Run(); err != nil {
 					_, _ = fmt.Fprintln(os.Stderr, err)
@@ -124,7 +125,7 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 		}
 	} else {
 		fmt.Println(Bold(Red("Could not find task")), Bold(Yellow(taskName)), Bold(Red("aborting!")))
-		os.Exit(-1);
+		os.Exit(-1)
 	}
 }
 
