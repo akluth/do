@@ -37,7 +37,7 @@ import (
 
 var args struct {
 	TaskName []string `arg:"positional"`
-	Dofile   string   `arg:"-d" help:"Path to Dofile whne it's not in current directory"`
+	File     string   `arg:"-f" help:"Path to Dofile whne it's not in current directory"`
 	Init     bool     `arg:"-i" help:"Create a skeleton Dofile"`
 }
 
@@ -194,8 +194,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	if args.Dofile != "" {
-		fileName = args.Dofile
+	if args.File != "" {
+		fileName = args.File
 		dirPrefix = filepath.Dir(fileName)
 	}
 
