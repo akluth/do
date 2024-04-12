@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Alexander 'alexclooze' Kluth
+// Copyright (c) 2019-2024 Alexander Kluth
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -80,8 +80,8 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 			cmd := exec.Command(cmdName, tokens...)
 			cmd.Dir = dirPrefix
 
-			if doFile.Tasks[taskName].Output == true {
-				if doFile.Tasks[taskName].Piped == true {
+			if doFile.Tasks[taskName].Output {
+				if doFile.Tasks[taskName].Piped {
 					cmdReader, err := cmd.StdoutPipe()
 					if err != nil {
 						_, _ = fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
