@@ -31,8 +31,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/alexflint/go-arg"
-	"github.com/dittusch/go-shlex"
-	. "github.com/logrusorgru/aurora"
+	"github.com/anmitsu/go-shlex"
+	"github.com/logrusorgru/aurora/v4"
 )
 
 var args struct {
@@ -58,7 +58,7 @@ func remove(slice []string, s int) []string {
 }
 
 func parseCommand(command string) []string {
-	parts, err := shlex.Split(strings.TrimSpace(command))
+	parts, err := shlex.Split(strings.TrimSpace(command), true)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,10 +68,10 @@ func parseCommand(command string) []string {
 
 func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 	if _, found := doFile.Tasks[taskName]; found {
-		fmt.Println(Bold("-> Executing task\t"), Bold(Cyan(taskName)))
+		fmt.Println(aurora.Bold("-> Executing task\t"), aurora.Bold(aurora.Cyan(taskName)))
 
 		for _, command := range doFile.Tasks[taskName].Commands {
-			fmt.Println("  ", Bold(Yellow(taskName)), "(", command, ")")
+			fmt.Println("  ", aurora.Bold(aurora.Yellow(taskName)), "(", command, ")")
 
 			tokens := parseCommand(command)
 			cmdName := tokens[0]
@@ -119,12 +119,12 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 		}
 
 		for _, task := range doFile.Tasks[taskName].Tasks {
-			fmt.Println(Bold(Cyan("-> Executing subtask\t")), Bold(task))
+			fmt.Println(aurora.Bold(aurora.Cyan("-> Executing subtask\t")), aurora.Bold(task))
 
 			executeTask(doFile, dirPrefix, task)
 		}
 	} else {
-		fmt.Println(Bold(Red("Could not find task")), Bold(Yellow(taskName)), Bold(Red("aborting!")))
+		fmt.Println(aurora.Bold(aurora.Red("Could not find task")), aurora.Bold(aurora.Yellow(taskName)), aurora.Bold(aurora.Red("aborting!")))
 		os.Exit(-1)
 	}
 }
@@ -132,7 +132,7 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 func createDoFileSkeleton() {
 	_, err := os.Stat("Dofile")
 	if !os.IsNotExist(err) {
-		fmt.Println(Red("Error: 'Dofile' already exists in current directory, aborting."))
+		fmt.Println(aurora.Red("Error: 'Dofile' already exists in current directory, aborting."))
 		os.Exit(-1)
 	}
 
@@ -180,7 +180,7 @@ desc = 'Dofile example'
 
 	_ = file.Sync()
 
-	fmt.Println(Green("Wrote Dofile to current directory. Edit it and then simply run 'do'!"))
+	fmt.Println(aurora.Green("Wrote Dofile to current directory. Edit it and then simply run 'do'."))
 }
 
 func main() {
@@ -209,7 +209,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(Bold(Green("\nExecuting tasks for")), doFile.Description)
+	fmt.Println(aurora.Bold(aurora.Green("\nExecuting tasks for")), doFile.Description)
 	fmt.Println()
 
 	if len(args.TaskName) > 0 {
@@ -222,6 +222,6 @@ func main() {
 		}
 	}
 
-	fmt.Println(Bold(Green("\nExecuted all tasks for")), doFile.Description)
+	fmt.Println(aurora.Bold(aurora.Green("\nExecuted all tasks for")), doFile.Description)
 	fmt.Println()
 }

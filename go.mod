@@ -1,10 +1,14 @@
-module quackiquacki.org/do
+module software-cookies.de/do
 
-go 1.16
+go 1.22
 
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/alexflint/go-arg v1.0.0
-	github.com/dittusch/go-shlex v0.0.0-20150515145356-3f9db97f8568
-	github.com/logrusorgru/aurora v0.0.0-20190417123914-21d75270181e
+	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
+)
+
+require (
+	github.com/alexflint/go-scalar v1.0.0 // indirect
+	github.com/logrusorgru/aurora/v4 v4.0.0 // indirect
 )
