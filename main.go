@@ -36,9 +36,11 @@ import (
 )
 
 var args struct {
-	TaskName []string `arg:"positional"`
-	File     string   `arg:"-f" help:"Path to Dofile whne it's not in current directory"`
-	Init     bool     `arg:"-i" help:"Create a skeleton Dofile"`
+	TaskName   []string `arg:"positional"`
+	File       string   `arg:"-f" help:"Path to Dofile whne it's not in current directory"`
+	Init       bool     `arg:"-i" help:"Create a skeleton Dofile"`
+	NotVerbose bool     `arg:"-n" help:"Not verbose mode, print only command output"`
+	Silent     bool     `arg:"-s" help:"Silent mode, print nothing except errors"`
 }
 
 type Dofile struct {
@@ -68,10 +70,14 @@ func parseCommand(command string) []string {
 
 func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 	if _, found := doFile.Tasks[taskName]; found {
-		fmt.Println(aurora.Bold("-> Executing task\t"), aurora.Bold(aurora.Cyan(taskName)))
+		if !args.Silent && !args.NotVerbose {
+			fmt.Println(aurora.Bold("-> Executing task\t"), aurora.Bold(aurora.Cyan(taskName)))
+		}
 
 		for _, command := range doFile.Tasks[taskName].Commands {
-			fmt.Println("  ", aurora.Bold(aurora.Yellow(taskName)), "(", command, ")")
+			if !args.Silent && !args.NotVerbose {
+				fmt.Println("  ", aurora.Bold(aurora.Yellow(taskName)), "(", command, ")")
+			}
 
 			tokens := parseCommand(command)
 			cmdName := tokens[0]
@@ -91,7 +97,11 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 					scanner := bufio.NewScanner(cmdReader)
 					go func() {
 						for scanner.Scan() {
-							fmt.Printf("\t%s\n", scanner.Text())
+							if args.Silent {
+								fmt.Printf("%s\n", scanner.Text())
+							} else {
+								fmt.Printf("\t%s\n", scanner.Text())
+							}
 						}
 					}()
 
@@ -119,7 +129,9 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 		}
 
 		for _, task := range doFile.Tasks[taskName].Tasks {
-			fmt.Println(aurora.Bold(aurora.Cyan("-> Executing subtask\t")), aurora.Bold(task))
+			if !args.Silent && !args.NotVerbose {
+				fmt.Println(aurora.Bold(aurora.Cyan("-> Executing subtask\t")), aurora.Bold(task))
+			}
 
 			executeTask(doFile, dirPrefix, task)
 		}
@@ -209,8 +221,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(aurora.Bold(aurora.Green("\nExecuting tasks for")), doFile.Description)
-	fmt.Println()
+	if !args.Silent && !args.NotVerbose {
+		fmt.Println(aurora.Bold(aurora.Green("\nExecuting tasks for")), doFile.Description)
+		fmt.Println()
+	}
 
 	if len(args.TaskName) > 0 {
 		for _, taskName := range args.TaskName {
@@ -222,6 +236,8 @@ func main() {
 		}
 	}
 
-	fmt.Println(aurora.Bold(aurora.Green("\nExecuted all tasks for")), doFile.Description)
-	fmt.Println()
+	if !args.Silent && !args.NotVerbose {
+		fmt.Println(aurora.Bold(aurora.Green("\nExecuted all tasks for")), doFile.Description)
+		fmt.Println()
+	}
 }
