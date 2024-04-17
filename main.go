@@ -107,13 +107,13 @@ func executeTask(doFile Dofile, dirPrefix string, taskName string) {
 
 					err = cmd.Start()
 					if err != nil {
-						_, _ = fmt.Fprintln(os.Stderr, "Error starting Cmd", err)
+						_, _ = fmt.Fprintln(os.Stderr, "Error starting Cmd,", err)
 						os.Exit(1)
 					}
 
 					err = cmd.Wait()
 					if err != nil {
-						_, _ = fmt.Fprintln(os.Stderr, "Error waiting for Cmd", err)
+						_, _ = fmt.Fprintln(os.Stderr, "Error waiting for Cmd,", err)
 						os.Exit(1)
 					}
 				} else {
@@ -231,7 +231,7 @@ func main() {
 			executeTask(doFile, dirPrefix, taskName)
 		}
 	} else {
-		for taskName, _ := range doFile.Tasks {
+		for taskName := range doFile.Tasks {
 			executeTask(doFile, dirPrefix, taskName)
 		}
 	}
