@@ -49,3 +49,7 @@ Then simply type
 
 to execute those super-important tasks.
 
+When no task name is given, tasks are executed in the order they are declared in
+the Dofile. Subtasks are executed before the commands of the task that references
+them, which makes them behave like dependencies.
+
