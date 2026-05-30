@@ -20,13 +20,13 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -37,7 +37,7 @@ import (
 
 var args struct {
 	TaskName   []string `arg:"positional"`
-	File       string   `arg:"-f" help:"Path to Dofile whne it's not in current directory"`
+	File       string   `arg:"-f" help:"Path to Dofile when it's not in current directory"`
 	Init       bool     `arg:"-i" help:"Create a skeleton Dofile"`
 	NotVerbose bool     `arg:"-n" help:"Not verbose mode, print only command output"`
 	Silent     bool     `arg:"-s" help:"Silent mode, print nothing except errors"`
@@ -55,90 +55,115 @@ type task struct {
 	Piped    bool
 }
 
-func remove(slice []string, s int) []string {
-	return append(slice[:s], slice[s+1:]...)
+type executor struct {
+	doFile     Dofile
+	dirPrefix  string
+	out        io.Writer
+	verbose    bool
+	silent     bool
+	processing map[string]bool
 }
 
-func parseCommand(command string) []string {
+func parseCommand(command string) ([]string, error) {
 	parts, err := shlex.Split(strings.TrimSpace(command), true)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	return parts
+	return parts, nil
 }
 
-func executeTask(doFile Dofile, dirPrefix string, taskName string) {
-	if _, found := doFile.Tasks[taskName]; found {
-		if !args.Silent && !args.NotVerbose {
-			fmt.Println(aurora.Bold("-> Executing task\t"), aurora.Bold(aurora.Cyan(taskName)))
-		}
-
-		for _, command := range doFile.Tasks[taskName].Commands {
-			if !args.Silent && !args.NotVerbose {
-				fmt.Println("  ", aurora.Bold(aurora.Yellow(taskName)), "(", command, ")")
-			}
-
-			tokens := parseCommand(command)
-			cmdName := tokens[0]
-			tokens = remove(tokens, 0)
-
-			cmd := exec.Command(cmdName, tokens...)
-			cmd.Dir = dirPrefix
-
-			if doFile.Tasks[taskName].Output {
-				if doFile.Tasks[taskName].Piped {
-					cmdReader, err := cmd.StdoutPipe()
-					if err != nil {
-						_, _ = fmt.Fprintln(os.Stderr, "Error creating StdoutPipe for Cmd", err)
-						os.Exit(1)
-					}
-
-					scanner := bufio.NewScanner(cmdReader)
-					go func() {
-						for scanner.Scan() {
-							if args.Silent {
-								fmt.Printf("%s\n", scanner.Text())
-							} else {
-								fmt.Printf("\t%s\n", scanner.Text())
-							}
-						}
-					}()
-
-					err = cmd.Start()
-					if err != nil {
-						_, _ = fmt.Fprintln(os.Stderr, "Error starting Cmd,", err)
-						os.Exit(1)
-					}
-
-					err = cmd.Wait()
-					if err != nil {
-						_, _ = fmt.Fprintln(os.Stderr, "Error waiting for Cmd,", err)
-						os.Exit(1)
-					}
-				} else {
-					out, _ := cmd.CombinedOutput()
-					fmt.Printf("\t%s", string(out))
-				}
-			} else {
-				if err := cmd.Run(); err != nil {
-					_, _ = fmt.Fprintln(os.Stderr, err)
-					os.Exit(1)
-				}
-			}
-		}
-
-		for _, task := range doFile.Tasks[taskName].Tasks {
-			if !args.Silent && !args.NotVerbose {
-				fmt.Println(aurora.Bold(aurora.Cyan("-> Executing subtask\t")), aurora.Bold(task))
-			}
-
-			executeTask(doFile, dirPrefix, task)
-		}
-	} else {
-		fmt.Println(aurora.Bold(aurora.Red("Could not find task")), aurora.Bold(aurora.Yellow(taskName)), aurora.Bold(aurora.Red("aborting!")))
-		os.Exit(-1)
+func (e *executor) executeTask(taskName string) error {
+	currentTask, found := e.doFile.Tasks[taskName]
+	if !found {
+		return fmt.Errorf("could not find task %q", taskName)
 	}
+
+	if e.processing[taskName] {
+		return fmt.Errorf("task cycle detected at %q", taskName)
+	}
+	e.processing[taskName] = true
+	defer delete(e.processing, taskName)
+
+	if e.verbose {
+		fmt.Fprintln(e.out, aurora.Bold("-> Executing task\t"), aurora.Bold(aurora.Cyan(taskName)))
+	}
+
+	for _, subtask := range currentTask.Tasks {
+		if e.verbose {
+			fmt.Fprintln(e.out, aurora.Bold(aurora.Cyan("-> Executing subtask\t")), aurora.Bold(subtask))
+		}
+
+		if err := e.executeTask(subtask); err != nil {
+			return err
+		}
+	}
+
+	for _, command := range currentTask.Commands {
+		if e.verbose {
+			fmt.Fprintln(e.out, "  ", aurora.Bold(aurora.Yellow(taskName)), "(", command, ")")
+		}
+
+		if err := e.executeCommand(currentTask, command); err != nil {
+			return fmt.Errorf("task %q command %q failed: %w", taskName, command, err)
+		}
+	}
+
+	return nil
+}
+
+func (e *executor) executeCommand(currentTask task, command string) error {
+	tokens, err := parseCommand(command)
+	if err != nil {
+		return err
+	}
+	if len(tokens) == 0 {
+		return fmt.Errorf("empty command")
+	}
+
+	cmd := exec.Command(tokens[0], tokens[1:]...)
+	cmd.Dir = e.dirPrefix
+
+	if !currentTask.Output || e.silent {
+		return cmd.Run()
+	}
+
+	if currentTask.Piped {
+		cmd.Stdout = e.out
+		cmd.Stderr = e.out
+		return cmd.Run()
+	}
+
+	output, err := cmd.CombinedOutput()
+	if len(output) > 0 {
+		_, _ = fmt.Fprintf(e.out, "\t%s", string(output))
+	}
+	return err
+}
+
+func taskNamesInFileOrder(metadata toml.MetaData, tasks map[string]task) []string {
+	seen := make(map[string]bool, len(tasks))
+	names := make([]string, 0, len(tasks))
+
+	for _, key := range metadata.Keys() {
+		if len(key) >= 2 && key[0] == "tasks" {
+			name := key[1]
+			if _, ok := tasks[name]; ok && !seen[name] {
+				names = append(names, name)
+				seen[name] = true
+			}
+		}
+	}
+
+	unordered := make([]string, 0)
+	for name := range tasks {
+		if !seen[name] {
+			unordered = append(unordered, name)
+		}
+	}
+	sort.Strings(unordered)
+	names = append(names, unordered...)
+	return names
 }
 
 func createDoFileSkeleton() {
@@ -150,7 +175,7 @@ func createDoFileSkeleton() {
 
 	var Dofile = `
 # A somewhat descriptive name for your project/Dofile
-desc = 'Dofile example'
+description = 'Dofile example'
 
 # All tasks are listed here
 [tasks]
@@ -175,7 +200,7 @@ desc = 'Dofile example'
 	
 	# You can combine tasks under one task name
 	tasks = [
-		"yourTaskName".
+		"yourTaskName",
 		"thisTaskDoesNotExistNow"
 	]
 `
@@ -211,13 +236,14 @@ func main() {
 		dirPrefix = filepath.Dir(fileName)
 	}
 
-	fileContents, err := ioutil.ReadFile(fileName)
+	fileContents, err := os.ReadFile(fileName)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	var doFile Dofile
-	if _, err := toml.Decode(string(fileContents), &doFile); err != nil {
+	metadata, err := toml.Decode(string(fileContents), &doFile)
+	if err != nil {
 		log.Fatal(err)
 	}
 
@@ -226,13 +252,28 @@ func main() {
 		fmt.Println()
 	}
 
+	runner := executor{
+		doFile:     doFile,
+		dirPrefix:  dirPrefix,
+		out:        os.Stdout,
+		verbose:    !args.Silent && !args.NotVerbose,
+		silent:     args.Silent,
+		processing: make(map[string]bool),
+	}
+
 	if len(args.TaskName) > 0 {
 		for _, taskName := range args.TaskName {
-			executeTask(doFile, dirPrefix, taskName)
+			if err := runner.executeTask(taskName); err != nil {
+				fmt.Fprintln(os.Stderr, aurora.Bold(aurora.Red(err.Error())))
+				os.Exit(1)
+			}
 		}
 	} else {
-		for taskName := range doFile.Tasks {
-			executeTask(doFile, dirPrefix, taskName)
+		for _, taskName := range taskNamesInFileOrder(metadata, doFile.Tasks) {
+			if err := runner.executeTask(taskName); err != nil {
+				fmt.Fprintln(os.Stderr, aurora.Bold(aurora.Red(err.Error())))
+				os.Exit(1)
+			}
 		}
 	}
 
